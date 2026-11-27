@@ -1,0 +1,7 @@
+node_modules/
+.env
+data/
+assets/uploads/*
+!assets/uploads/.gitkeep
+Dkriuk Fried Chicken.html
+Dkriuk Fried Chicken_files/

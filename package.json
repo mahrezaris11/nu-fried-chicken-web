@@ -1,0 +1,12 @@
+{
+  "name": "nu-fried-chicken-web",
+  "version": "1.0.0",
+  "description": "Website profil bisnis, landing page kemitraan, dan Admin CMS untuk Nu Fried Chicken & Burger",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  }
+}
