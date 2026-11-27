@@ -802,7 +802,7 @@
       showToast(
         result.mode === 'server'
           ? 'Berhasil disimpan ke server! Perubahan langsung tayang di website.'
-          : 'Disimpan di browser lokal! Jalankan server Node untuk menyimpan permanen.'
+          : 'Tersimpan di browser ini! Untuk tayang ke semua pengunjung online, klik Publish di tab Publish Online & Keamanan.'
       );
     } catch (err) {
       showToast(err.message, true);
@@ -845,6 +845,72 @@
       showToast('Password admin berhasil diperbarui!');
     } catch (err) {
       showToast(err.message, true);
+    }
+  });
+
+  // Publish to GitHub Pages (Static Online CMS Sync)
+  const GH_TOKEN_LS = 'nu_gh_publish_token_v1';
+  const ghTokenInput = document.getElementById('ghTokenInput');
+  const ghSaveTokenCheck = document.getElementById('ghSaveTokenCheck');
+  try {
+    const savedGhToken = localStorage.getItem(GH_TOKEN_LS);
+    if (savedGhToken && ghTokenInput && ghSaveTokenCheck) {
+      ghTokenInput.value = savedGhToken;
+      ghSaveTokenCheck.checked = true;
+    }
+  } catch {}
+
+  document.getElementById('publishGithubBtn')?.addEventListener('click', async () => {
+    const repoRaw = (document.getElementById('ghRepoInput')?.value || '').trim();
+    const branch = (document.getElementById('ghBranchInput')?.value || 'main').trim();
+    const token = (ghTokenInput?.value || '').trim();
+    const [owner, repo] = repoRaw.split('/').map((s) => s.trim());
+
+    if (!owner || !repo) {
+      showToast('Format Repository harus owner/nama-repo.', true);
+      return;
+    }
+    if (!token) {
+      showToast('Masukkan GitHub Personal Access Token terlebih dahulu.', true);
+      return;
+    }
+
+    const btn = document.getElementById('publishGithubBtn');
+    const origText = btn ? btn.textContent : '';
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Sedang mempublish ke GitHub...';
+    }
+
+    try {
+      try {
+        if (ghSaveTokenCheck?.checked) localStorage.setItem(GH_TOKEN_LS, token);
+        else localStorage.removeItem(GH_TOKEN_LS);
+      } catch {}
+
+      const overrides = {
+        brand: state.brand,
+        media: state.media,
+        promo: state.promo,
+        packages: state.packages,
+        menuItems: state.menuItems,
+        onboardingSteps: state.onboardingSteps,
+        faqs: state.faqs,
+      };
+      const res = await STORE.publishToGithub({ owner, repo, branch, token, overrides });
+      const loaded = await STORE.loadContent();
+      state = STORE.deepClone(loaded.content);
+      renderAllPanels();
+      showToast(
+        `Berhasil dipublish ke GitHub (${res.uploadedImages} gambar baru diupload)! Website online terupdate dalam ± 30-60 detik.`
+      );
+    } catch (err) {
+      showToast(err.message || 'Gagal publish ke GitHub.', true);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = origText;
+      }
     }
   });
 

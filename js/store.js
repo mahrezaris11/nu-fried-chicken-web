@@ -96,10 +96,21 @@
         overrides = json.overrides || {};
         mode = 'server';
       } else {
-        overrides = getLocalOverrides();
+        throw new Error('no-api');
       }
     } catch {
-      overrides = getLocalOverrides();
+      let liveOverrides = {};
+      try {
+        const liveRes = await fetch(`./data-live.json?v=${Date.now()}`, { cache: 'no-store' });
+        if (liveRes.ok) {
+          liveOverrides = await liveRes.json();
+        }
+      } catch {
+        liveOverrides = {};
+      }
+      const localOverrides = getLocalOverrides();
+      const hasLocal = localOverrides && Object.keys(localOverrides).length > 0;
+      overrides = hasLocal ? Object.assign({}, liveOverrides, localOverrides) : liveOverrides;
     }
 
     return {
@@ -285,11 +296,103 @@
     return res.ok;
   }
 
+  function utf8ToBase64(str) {
+    return btoa(unescape(encodeURIComponent(str)));
+  }
+
+  async function githubPutContent({ owner, repo, branch, token, filePath, base64Content, message }) {
+    const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`;
+    const headers = {
+      Accept: 'application/vnd.github+json',
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    };
+
+    let sha;
+    const getRes = await fetch(`${apiUrl}?ref=${encodeURIComponent(branch)}`, { headers });
+    if (getRes.ok) {
+      const info = await getRes.json();
+      sha = info.sha;
+    }
+
+    const body = { message, content: base64Content, branch };
+    if (sha) body.sha = sha;
+
+    const putRes = await fetch(apiUrl, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(body),
+    });
+    if (!putRes.ok) {
+      const err = await putRes.json().catch(() => ({}));
+      throw new Error(err.message || `Gagal upload ${filePath} ke GitHub (${putRes.status}).`);
+    }
+    return putRes.json();
+  }
+
+  async function publishToGithub({ owner, repo, branch = 'main', token, overrides }) {
+    if (!owner || !repo || !token) {
+      throw new Error('Repository dan GitHub Token wajib diisi.');
+    }
+    const clean = deepClone(overrides || {});
+    let uploadIdx = 0;
+
+    async function convertDataUrls(node) {
+      if (Array.isArray(node)) {
+        for (let i = 0; i < node.length; i++) {
+          node[i] = await convertDataUrls(node[i]);
+        }
+        return node;
+      }
+      if (node && typeof node === 'object') {
+        for (const key of Object.keys(node)) {
+          node[key] = await convertDataUrls(node[key]);
+        }
+        return node;
+      }
+      if (typeof node === 'string') {
+        const match = node.match(/^data:image\/(png|jpeg|jpg|webp);base64,([A-Za-z0-9+/=]+)$/);
+        if (match) {
+          uploadIdx += 1;
+          const ext = match[1] === 'jpeg' ? 'jpg' : match[1];
+          const relPath = `assets/uploads/nu-${Date.now()}-${uploadIdx}.${ext}`;
+          await githubPutContent({
+            owner,
+            repo,
+            branch,
+            token,
+            filePath: relPath,
+            base64Content: match[2],
+            message: `Admin CMS: upload ${relPath}`,
+          });
+          return `./${relPath}`;
+        }
+      }
+      return node;
+    }
+
+    await convertDataUrls(clean);
+
+    await githubPutContent({
+      owner,
+      repo,
+      branch,
+      token,
+      filePath: 'data-live.json',
+      base64Content: utf8ToBase64(JSON.stringify(clean, null, 2)),
+      message: 'Admin CMS: update data-live.json',
+    });
+
+    setLocalOverrides({});
+    return { ok: true, uploadedImages: uploadIdx };
+  }
+
   window.NU_STORE = {
     loadContent,
     saveOverrides,
     resetOverrides,
     uploadImage,
+    publishToGithub,
     submitLead,
     fetchLeads,
     updateLeadStatus,
