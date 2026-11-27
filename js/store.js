@@ -229,18 +229,46 @@
     return { priceLabel: Math.round(price / 1000).toString(), priceUnit: 'RIBU' };
   }
 
+  async function getLeadWebhookUrl() {
+    const local = getLocalOverrides();
+    if (local && local.brand && local.brand.leadWebhookUrl) {
+      return String(local.brand.leadWebhookUrl).trim();
+    }
+    try {
+      const liveRes = await fetch(`./data-live.json?v=${Date.now()}`, { cache: 'no-store' });
+      if (liveRes.ok) {
+        const live = await liveRes.json();
+        if (live && live.brand && live.brand.leadWebhookUrl) {
+          return String(live.brand.leadWebhookUrl).trim();
+        }
+      }
+    } catch {}
+    return '';
+  }
+
   async function submitLead(lead) {
     const hasApi = await detectApiAvailable();
     if (!hasApi) {
-      const list = JSON.parse(localStorage.getItem(LS_LEADS_KEY) || '[]');
       const entry = {
         ...lead,
         id: `lead-${Date.now()}`,
         status: 'Baru',
         createdAt: new Date().toISOString(),
       };
+      const list = JSON.parse(localStorage.getItem(LS_LEADS_KEY) || '[]');
       list.unshift(entry);
       localStorage.setItem(LS_LEADS_KEY, JSON.stringify(list));
+
+      const webhookUrl = await getLeadWebhookUrl();
+      if (webhookUrl) {
+        const res = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'create', ...entry }),
+        });
+        if (!res.ok) throw new Error('Gagal menyimpan pendaftaran ke database online.');
+        return { ok: true, lead: entry, mode: 'webhook' };
+      }
       return { ok: true, lead: entry, mode: 'local' };
     }
     const res = await fetch('/api/leads', {
@@ -256,6 +284,17 @@
   async function fetchLeads() {
     const hasApi = await detectApiAvailable();
     if (!hasApi) {
+      const webhookUrl = await getLeadWebhookUrl();
+      if (webhookUrl) {
+        try {
+          const sep = webhookUrl.includes('?') ? '&' : '?';
+          const res = await fetch(`${webhookUrl}${sep}action=list&t=${Date.now()}`, { cache: 'no-store' });
+          if (res.ok) {
+            const json = await res.json();
+            if (Array.isArray(json.leads)) return json.leads;
+          }
+        } catch {}
+      }
       return JSON.parse(localStorage.getItem(LS_LEADS_KEY) || '[]');
     }
     const res = await fetch('/api/leads', { headers: authHeaders(), cache: 'no-store' });
@@ -271,6 +310,15 @@
       const idx = list.findIndex((l) => l.id === id);
       if (idx !== -1) list[idx].status = status;
       localStorage.setItem(LS_LEADS_KEY, JSON.stringify(list));
+
+      const webhookUrl = await getLeadWebhookUrl();
+      if (webhookUrl) {
+        await fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'updateStatus', id, status }),
+        });
+      }
       return true;
     }
     const res = await fetch('/api/leads', {
@@ -286,6 +334,15 @@
     if (!hasApi) {
       const list = JSON.parse(localStorage.getItem(LS_LEADS_KEY) || '[]').filter((l) => l.id !== id);
       localStorage.setItem(LS_LEADS_KEY, JSON.stringify(list));
+
+      const webhookUrl = await getLeadWebhookUrl();
+      if (webhookUrl) {
+        await fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'delete', id }),
+        });
+      }
       return true;
     }
     const res = await fetch('/api/leads', {

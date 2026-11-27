@@ -642,6 +642,12 @@
   }
 
   async function renderLeadsPanel() {
+    const webhookEl = document.getElementById('leadWebhookInput');
+    if (webhookEl) {
+      webhookEl.value = state.brand.leadWebhookUrl || '';
+      webhookEl.oninput = () => (state.brand.leadWebhookUrl = webhookEl.value.trim());
+    }
+
     const listEl = document.getElementById('adminLeadsList');
     if (!listEl) return;
     const leads = await STORE.fetchLeads();
@@ -707,6 +713,29 @@
   }
 
   document.getElementById('refreshLeadsBtn')?.addEventListener('click', renderLeadsPanel);
+  document.getElementById('toggleGsGuideBtn')?.addEventListener('click', () => {
+    document.getElementById('gsGuideBox')?.classList.toggle('hidden');
+  });
+  document.getElementById('saveWebhookBtn')?.addEventListener('click', async () => {
+    const val = (document.getElementById('leadWebhookInput')?.value || '').trim();
+    state.brand.leadWebhookUrl = val;
+    try {
+      const overrides = {
+        brand: state.brand,
+        media: state.media,
+        promo: state.promo,
+        packages: state.packages,
+        menuItems: state.menuItems,
+        onboardingSteps: state.onboardingSteps,
+        faqs: state.faqs,
+      };
+      await STORE.saveOverrides(overrides);
+      await renderLeadsPanel();
+      showToast('URL Leads disimpan! Jangan lupa klik Publish Perubahan ke Website Online di tab Publish Online & Keamanan.');
+    } catch (err) {
+      showToast(err.message, true);
+    }
+  });
 
   function renderKontenPanel() {
     const waNumEl = document.getElementById('brandWaNumInput');
