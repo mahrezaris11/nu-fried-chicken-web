@@ -162,8 +162,8 @@
         <button type="button" data-admin-tab="konten" class="admin-tab-btn px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap border transition">
           Kontak, Alur &amp; FAQ
         </button>
-        <button type="button" data-admin-tab="security" class="admin-tab-btn px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap border transition">
-          Keamanan &amp; Reset
+        <button type="button" data-admin-tab="security" class="admin-tab-btn px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap border transition">
+          Publish Online &amp; Keamanan
         </button>
       </div>
     </header>
@@ -365,8 +365,59 @@
         </div>
       </section>
 
-      <!-- TAB 7: KEAMANAN & RESET -->
+      <!-- TAB 7: PUBLISH ONLINE & KEAMANAN -->
       <section id="tab-security" class="admin-panel hidden space-y-6">
+        <div class="bg-gradient-to-br from-emerald-50 to-white rounded-3xl border border-emerald-200 p-6 shadow-sm space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold mb-1.5">
+                GitHub Pages Sync
+              </span>
+              <h3 class="text-lg font-extrabold text-nu-ink">Publish Perubahan ke Website Online</h3>
+              <p class="text-xs text-zinc-600 mt-1">
+                Jika Anda membuka Admin di GitHub Pages, gunakan fitur ini untuk langsung meng-upload gambar baru &amp; menyimpan perubahan ke <code>data-live.json</code> agar tampil di HP/browser semua pengunjung.
+              </p>
+            </div>
+            <a
+              href="https://github.com/settings/tokens/new?description=Webnu%20Admin%20CMS&scopes=repo"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="shrink-0 px-3.5 py-2 rounded-xl bg-white border border-emerald-300 hover:border-emerald-500 text-xs font-bold text-emerald-800 transition"
+            >
+              Buat GitHub Token ↗
+            </a>
+          </div>
+
+          <div class="grid sm:grid-cols-3 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-zinc-700 mb-1">Repository GitHub (owner/repo)</label>
+              <input id="ghRepoInput" type="text" value="mahrezaris11/nu-fried-chicken-web" class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-200 bg-white text-xs font-semibold focus:border-nu-red outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-zinc-700 mb-1">Branch</label>
+              <input id="ghBranchInput" type="text" value="main" class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-200 bg-white text-xs font-semibold focus:border-nu-red outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-zinc-700 mb-1">GitHub Personal Access Token</label>
+              <input id="ghTokenInput" type="password" placeholder="ghp_... atau github_pat_..." class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-200 bg-white text-xs font-semibold focus:border-nu-red outline-none" />
+            </div>
+          </div>
+
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+            <label class="inline-flex items-center gap-2 text-xs text-zinc-600 cursor-pointer">
+              <input id="ghSaveTokenCheck" type="checkbox" class="rounded border-zinc-300 text-nu-red focus:ring-nu-red" />
+              Simpan token di browser perangkat ini saja
+            </label>
+            <button
+              id="publishGithubBtn"
+              type="button"
+              class="px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold shadow-md transition"
+            >
+              Publish Perubahan ke Website Online
+            </button>
+          </div>
+        </div>
+
         <div class="grid md:grid-cols-2 gap-6">
           <div class="bg-white rounded-3xl border border-zinc-200 p-6 space-y-4 shadow-sm">
             <h3 class="text-lg font-extrabold text-nu-ink">Ganti Password Admin</h3>
